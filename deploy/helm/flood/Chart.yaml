@@ -1,0 +1,15 @@
+apiVersion: v2
+name: flood
+description: A modern Web UI for various torrent clients with multi-user and multi-client support
+type: application
+version: 4.11.0
+appVersion: "4.11.0"
+keywords:
+  - torrent
+  - webui
+  - qbittorrent
+  - rtorrent
+  - transmission
+home: https://flood.js.org
+sources:
+  - https://github.com/jesec/flood

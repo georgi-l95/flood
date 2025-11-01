@@ -1,0 +1,46 @@
+🎉 Flood has been deployed successfully!
+
+📦 Release Information:
+   Name:      {{ .Release.Name }}
+   Namespace: {{ .Release.Namespace }}
+   Version:   {{ .Chart.AppVersion }}
+
+🌐 Access Information:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+   External URL: https://{{ $host.host }}
+{{- end }}
+{{- else }}
+   Ingress is disabled. To access Flood, use port-forward:
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "flood.fullname" . }} {{ .Values.flood.port }}:{{ .Values.service.port }}
+   Then open: http://localhost:{{ .Values.flood.port }}
+{{- end }}
+
+📁 Storage Configuration:
+{{- if .Values.storage.downloads.enabled }}
+   Downloads: {{ .Values.storage.downloads.mountPath }} ({{ .Values.storage.downloads.type }})
+{{- end }}
+{{- if .Values.storage.config.enabled }}
+   Config:    {{ .Values.storage.config.mountPath }} ({{ .Values.storage.config.type }})
+{{- end }}
+
+🔍 Check Status:
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "flood.name" . }}
+   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "flood.name" . }} -f
+
+📝 First-Time Setup:
+   1. Navigate to your Flood URL
+   2. Create your admin account
+   3. Configure torrent client connection (qBittorrent, rTorrent, etc.)
+
+💡 Tips:
+   - When adding torrents, you can specify custom download directories
+   - Use qBittorrent categories to auto-route downloads (Movies, TV, etc.)
+   - Check logs if you encounter permission issues with hostPath volumes
+
+📖 Documentation:
+   - Deployment Guide: ./deploy/README.md
+   - Flood Docs: https://github.com/jesec/flood/wiki
+   - Discord: https://discord.gg/Z7yR5Uf
+
+Happy torrenting! 🚀

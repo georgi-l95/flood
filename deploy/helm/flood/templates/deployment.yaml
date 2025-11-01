@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "flood.fullname" . }}
+  labels:
+    {{- include "flood.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Use Recreate for hostPath volumes
+  selector:
+    matchLabels:
+      {{- include "flood.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "flood.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "flood.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: flood
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.flood.port }}
+              protocol: TCP
+          env:
+            - name: FLOOD_OPTION_port
+              value: {{ .Values.flood.port | quote }}
+            - name: FLOOD_OPTION_baseuri
+              value: {{ .Values.flood.baseURI | quote }}
+            - name: FLOOD_OPTION_rundir
+              value: {{ .Values.storage.config.mountPath | quote }}
+            {{- if .Values.flood.secret }}
+            - name: FLOOD_OPTION_secret
+              value: {{ .Values.flood.secret | quote }}
+            {{- end }}
+            {{- if .Values.flood.allowedPaths }}
+            - name: FLOOD_OPTION_allowedpath
+              value: {{ join "," .Values.flood.allowedPaths | quote }}
+            {{- end }}
+          {{- if .Values.flood.extraArgs }}
+          args:
+            {{- range .Values.flood.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.storage.downloads.enabled }}
+            - name: downloads
+              mountPath: {{ .Values.storage.downloads.mountPath }}
+            {{- end }}
+            {{- if .Values.storage.config.enabled }}
+            - name: config
+              mountPath: {{ .Values.storage.config.mountPath }}
+            {{- end }}
+      volumes:
+        {{- if .Values.storage.downloads.enabled }}
+        - name: downloads
+          {{- if eq .Values.storage.downloads.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.storage.downloads.hostPath.path }}
+            type: {{ .Values.storage.downloads.hostPath.type }}
+          {{- else if eq .Values.storage.downloads.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.storage.downloads.pvc.claimName }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.storage.config.enabled }}
+        - name: config
+          {{- if eq .Values.storage.config.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.storage.config.hostPath.path }}
+            type: {{ .Values.storage.config.hostPath.type }}
+          {{- else if eq .Values.storage.config.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.storage.config.pvc.claimName }}
+          {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

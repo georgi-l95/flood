@@ -1,0 +1,152 @@
+# Default values for Flood
+# This is a YAML-formatted file.
+
+# Flood application configuration
+flood:
+  # Port Flood will listen on
+  port: 8765
+
+  # Base URI for Flood (use "/" for root, or "/flood" for subpath)
+  baseURI: "/"
+
+  # Secret for JWT tokens (generate with: openssl rand -hex 32)
+  # If not set, a random secret will be generated on first start
+  secret: ""
+
+  # Allowed paths for file operations (security feature)
+  allowedPaths:
+    - /downloads
+
+  # Additional Flood CLI arguments
+  extraArgs: []
+  # Example:
+  # extraArgs:
+  #   - --auth=none  # Disable built-in auth (use if behind SSO)
+
+# Image configuration
+image:
+  repository: jesec/flood
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+# Image pull secrets (if using private registry)
+imagePullSecrets: []
+
+# Service account configuration
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8765
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations:
+    # Traefik specific annotations
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Cloudflare tunnel annotations (add if needed)
+    # external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+  hosts:
+    - host: flood.hederium.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # If you need TLS configuration:
+  # tls:
+  #   - secretName: flood-tls
+  #     hosts:
+  #       - flood.hederium.com
+
+# Storage configuration
+storage:
+  # Downloads volume (shared with qBittorrent)
+  downloads:
+    enabled: true
+    type: hostPath  # or pvc
+    hostPath:
+      path: /mnt/media/Plex
+      type: Directory
+    # If using PVC instead:
+    # pvc:
+    #   claimName: plex-media-pvc
+    #   storageClass: ""
+    #   size: 1Ti
+    mountPath: /downloads
+
+  # Flood config volume (database and settings)
+  config:
+    enabled: true
+    type: hostPath  # or pvc
+    hostPath:
+      path: /opt/stack/flood
+      type: DirectoryOrCreate
+    # If using PVC instead:
+    # pvc:
+    #   claimName: flood-config-pvc
+    #   storageClass: ""
+    #   size: 1Gi
+    mountPath: /config
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
