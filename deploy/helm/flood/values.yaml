@@ -67,8 +67,8 @@ ingress:
   enabled: true
   className: "traefik"
   annotations:
-    # Traefik specific annotations
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Traefik specific annotations (web = HTTP:80, websecure = HTTPS:443)
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     # Cloudflare tunnel annotations (add if needed)
     # external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
   hosts:
